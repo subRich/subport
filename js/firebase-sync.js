@@ -207,5 +207,8 @@ const FBSync = {
   wrap('goals', 'saveGoals');
 })();
 
+// Expose to global scope (script is type=module, so vars don't auto-attach to window)
+window.FBSync = FBSync;
+
 // Auto-init
 FBSync.init();
