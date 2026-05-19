@@ -1,0 +1,34 @@
+# ===== Sensitive financial data (don't expose on public GitHub) =====
+*.xlsx
+*.xls
+~$*
+
+# ===== Personal user data (Claude syncs these from Excel) =====
+assets/stocks.js
+assets/stocks.json
+assets/transactions.js
+assets/profile.jpg
+
+# ===== Local secrets =====
+firebase-config.local.js
+.env
+.env.*
+
+# ===== OS / Editor =====
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# ===== Logs =====
+*.log
+
+# ===== Random screenshots/images in root =====
+S__*.jpg
+S__*.png
+Screenshot*.png
+Screenshot*.jpg
+
+# ===== Claude Code internals =====
+.claude/

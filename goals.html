@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>เป้าหมาย · My Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="page-header">
+      <h1>เป้าหมายการเงิน</h1>
+      <p>ตั้งเป้าและติดตามความคืบหน้า</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="btn-row">
+        <button class="btn" onclick="openGoalModal()">➕ เพิ่มเป้าหมาย</button>
+      </div>
+    </div>
+
+    <div id="goalGrid" class="grid grid-2"></div>
+    <div id="goalEmpty" style="display:none;" class="card">
+      <div class="empty">
+        <div class="empty-icon">🎯</div>
+        ยังไม่มีเป้าหมาย — เริ่มสร้างเป้าแรกของคุณ
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="goalModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="goalModalTitle">เพิ่มเป้าหมาย</h2>
+        <button class="close-btn" onclick="closeGoalModal()">×</button>
+      </div>
+      <input type="hidden" id="gId">
+      <div><label>ชื่อเป้าหมาย *</label><input id="gName" placeholder="เช่น เงินดาวน์บ้าน, ไปเที่ยวญี่ปุ่น"></div>
+      <div class="form-row" style="margin-top: 12px;">
+        <div><label>ยอดเป้าหมาย (บาท) *</label><input type="number" id="gTarget" step="0.01" min="0"></div>
+        <div><label>ยอดปัจจุบัน (บาท)</label><input type="number" id="gCurrent" step="0.01" min="0" value="0"></div>
+      </div>
+      <div class="form-row">
+        <div><label>วันที่ต้องการบรรลุ</label><input type="date" id="gDeadline"></div>
+        <div>
+          <label>ไอคอน/อิโมจิ</label>
+          <input id="gIcon" placeholder="🏠" maxlength="2">
+        </div>
+      </div>
+      <div><label>บันทึก</label><textarea id="gNote" rows="2"></textarea></div>
+      <div class="btn-row" style="margin-top: 20px;">
+        <button class="btn" onclick="saveGoal()">💾 บันทึก</button>
+        <button class="btn ghost" onclick="closeGoalModal()">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script type="module" src="js/firebase-sync.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});</script>
+  <script src="js/goals.js"></script>
+  <script>window.addEventListener('firebase-pulled', renderGoals);</script>
+</body>
+</html>

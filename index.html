@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>เกี่ยวกับฉัน · My Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="page-header">
+      <h1>เกี่ยวกับฉัน</h1>
+      <p>โปรไฟล์ส่วนตัวและทักษะ</p>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="profile-hero">
+        <div class="avatar" id="avatar" onclick="document.getElementById('avatarInput').click()">
+          <img id="avatarImg" alt="avatar" style="display:none">
+          <span id="avatarText">?</span>
+        </div>
+        <input type="file" id="avatarInput" accept="image/*" hidden>
+        <div>
+          <div class="profile-name" id="pName">—</div>
+          <div class="profile-role" id="pRole">—</div>
+          <div class="profile-bio" id="pBio">—</div>
+          <div class="contact-list" id="pContact"></div>
+          <div class="btn-row" style="margin-top: 16px;">
+            <button class="btn" onclick="openProfileModal()">✏️ แก้ไขโปรไฟล์</button>
+            <button class="btn ghost" onclick="exportData()">💾 สำรองข้อมูล</button>
+            <button class="btn ghost" onclick="document.getElementById('importInput').click()">📥 นำเข้าข้อมูล</button>
+            <input type="file" id="importInput" accept=".json" hidden>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="section-title">🛠️ ทักษะ</div>
+        <div class="skills" id="pSkills"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">🎓 การศึกษา</div>
+        <div id="pEducation"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <div class="section-title">💼 ประสบการณ์</div>
+      <div id="pExperience"></div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <div class="section-title">📊 ภาพรวมการเงิน</div>
+      <div class="grid grid-3" id="quickStats"></div>
+    </div>
+  </div>
+
+  <!-- Profile Edit Modal -->
+  <div class="modal" id="profileModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>แก้ไขโปรไฟล์</h2>
+        <button class="close-btn" onclick="closeProfileModal()">×</button>
+      </div>
+      <div class="form-row">
+        <div><label>ชื่อ</label><input id="fName"></div>
+        <div><label>ตำแหน่ง/บทบาท</label><input id="fRole"></div>
+      </div>
+      <div><label>คำอธิบายตัวเอง</label><textarea id="fBio" rows="3"></textarea></div>
+      <div class="form-row" style="margin-top: 12px;">
+        <div><label>อีเมล</label><input id="fEmail" type="email"></div>
+        <div><label>โทรศัพท์</label><input id="fPhone"></div>
+        <div><label>ที่อยู่</label><input id="fLocation"></div>
+      </div>
+      <div><label>ทักษะ (คั่นด้วยจุลภาค ,)</label><input id="fSkills"></div>
+      <div style="margin-top: 12px;"><label>การศึกษา (1 รายการ/บรรทัด เช่น: ปริญญาตรี วิศวกรรม, จุฬาฯ, 2563-2567)</label><textarea id="fEducation" rows="3"></textarea></div>
+      <div style="margin-top: 12px;"><label>ประสบการณ์ (1 รายการ/บรรทัด)</label><textarea id="fExperience" rows="3"></textarea></div>
+      <div class="btn-row" style="margin-top: 20px;">
+        <button class="btn" onclick="saveProfile()">💾 บันทึก</button>
+        <button class="btn ghost" onclick="closeProfileModal()">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="assets/stocks.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script type="module" src="js/firebase-sync.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});</script>
+  <script>
+    function renderProfile() {
+      const p = DB.getProfile();
+      document.getElementById('pName').textContent = p.name || '—';
+      document.getElementById('pRole').textContent = p.role || '';
+      document.getElementById('pBio').textContent = p.bio || '';
+      const avatarImg = document.getElementById('avatarImg');
+      const avatarText = document.getElementById('avatarText');
+      const avatarSrc = p.avatar || 'assets/profile.jpg';
+      if (avatarSrc) {
+        avatarImg.src = avatarSrc;
+        avatarImg.style.display = 'block';
+        avatarText.style.display = 'none';
+        avatarImg.onerror = () => {
+          avatarImg.style.display = 'none';
+          avatarText.style.display = 'flex';
+          avatarText.textContent = (p.name || '?').charAt(0).toUpperCase();
+        };
+      } else {
+        avatarImg.style.display = 'none';
+        avatarText.style.display = 'flex';
+        avatarText.textContent = (p.name || '?').charAt(0).toUpperCase();
+      }
+
+      const contact = [];
+      if (p.email) contact.push(`<span>✉️ ${p.email}</span>`);
+      if (p.phone) contact.push(`<span>📞 ${p.phone}</span>`);
+      if (p.location) contact.push(`<span>📍 ${p.location}</span>`);
+      document.getElementById('pContact').innerHTML = contact.join('');
+
+      document.getElementById('pSkills').innerHTML = (p.skills || []).length
+        ? p.skills.map(s => `<span class="skill-chip">${s}</span>`).join('')
+        : '<span style="color: var(--text-muted)">ยังไม่มีทักษะ — กด "แก้ไขโปรไฟล์"</span>';
+
+      document.getElementById('pEducation').innerHTML = (p.education || []).length
+        ? p.education.map(e => `<div style="padding: 10px 0; border-bottom: 1px solid var(--border)">${e}</div>`).join('')
+        : '<div class="empty"><div class="empty-icon">🎓</div>ยังไม่มีข้อมูล</div>';
+
+      document.getElementById('pExperience').innerHTML = (p.experience || []).length
+        ? p.experience.map(e => `<div style="padding: 10px 0; border-bottom: 1px solid var(--border)">${e}</div>`).join('')
+        : '<div class="empty"><div class="empty-icon">💼</div>ยังไม่มีข้อมูล</div>';
+
+      // Quick stats
+      const txs = DB.getTransactions();
+      const inv = DB.getInvestments();
+      const now = new Date();
+      const monthTxs = txs.filter(t => {
+        const d = new Date(t.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+      const income = monthTxs.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0);
+      const expense = monthTxs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount || 0), 0);
+      const invValue = inv.reduce((s, x) => s + Number(x.quantity || 0) * Number(x.currentPrice || 0), 0);
+
+      document.getElementById('quickStats').innerHTML = `
+        <div class="stat income"><div class="label">รายรับเดือนนี้</div><div class="value pos">${fmt.money(income)}</div></div>
+        <div class="stat expense"><div class="label">รายจ่ายเดือนนี้</div><div class="value neg">${fmt.money(expense)}</div></div>
+        <div class="stat invest"><div class="label">มูลค่าการลงทุน</div><div class="value">${fmt.money(invValue)}</div></div>
+      `;
+    }
+
+    function openProfileModal() {
+      const p = DB.getProfile();
+      document.getElementById('fName').value = p.name || '';
+      document.getElementById('fRole').value = p.role || '';
+      document.getElementById('fBio').value = p.bio || '';
+      document.getElementById('fEmail').value = p.email || '';
+      document.getElementById('fPhone').value = p.phone || '';
+      document.getElementById('fLocation').value = p.location || '';
+      document.getElementById('fSkills').value = (p.skills || []).join(', ');
+      document.getElementById('fEducation').value = (p.education || []).join('\n');
+      document.getElementById('fExperience').value = (p.experience || []).join('\n');
+      document.getElementById('profileModal').classList.add('open');
+    }
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.remove('open');
+    }
+    function saveProfile() {
+      const p = DB.getProfile();
+      p.name = document.getElementById('fName').value.trim();
+      p.role = document.getElementById('fRole').value.trim();
+      p.bio = document.getElementById('fBio').value.trim();
+      p.email = document.getElementById('fEmail').value.trim();
+      p.phone = document.getElementById('fPhone').value.trim();
+      p.location = document.getElementById('fLocation').value.trim();
+      p.skills = document.getElementById('fSkills').value.split(',').map(s => s.trim()).filter(Boolean);
+      p.education = document.getElementById('fEducation').value.split('\n').map(s => s.trim()).filter(Boolean);
+      p.experience = document.getElementById('fExperience').value.split('\n').map(s => s.trim()).filter(Boolean);
+      DB.saveProfile(p);
+      closeProfileModal();
+      renderProfile();
+      toast('บันทึกโปรไฟล์เรียบร้อย');
+    }
+
+    // Avatar upload — resize before saving (avoid localStorage quota)
+    function compressImage(file, maxSize = 400) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > height) {
+              if (width > maxSize) { height = (height * maxSize) / width; width = maxSize; }
+            } else {
+              if (height > maxSize) { width = (width * maxSize) / height; height = maxSize; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+          };
+          img.onerror = () => reject(new Error('โหลดรูปไม่ได้'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('อ่านไฟล์ไม่ได้'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('avatarInput').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        toast('กรุณาเลือกไฟล์รูปภาพ', 'error');
+        e.target.value = '';
+        return;
+      }
+      try {
+        const dataUrl = await compressImage(file, 400);
+        const p = DB.getProfile();
+        p.avatar = dataUrl;
+        try {
+          DB.saveProfile(p);
+        } catch (err) {
+          toast('พื้นที่เก็บข้อมูลเต็ม', 'error');
+          return;
+        }
+        renderProfile();
+        toast('อัปเดตรูปโปรไฟล์แล้ว');
+      } catch (err) {
+        console.error(err);
+        toast(err.message || 'อัปโหลดรูปไม่สำเร็จ', 'error');
+      }
+      e.target.value = '';
+    });
+
+    // Export / Import
+    function exportData() {
+      const data = DB.exportAll();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `portfolio-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('สำรองข้อมูลแล้ว');
+    }
+    document.getElementById('importInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          DB.importAll(data);
+          renderProfile();
+          toast('นำเข้าข้อมูลสำเร็จ');
+        } catch {
+          toast('ไฟล์ไม่ถูกต้อง', 'error');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // One-time migration: if profile still has the old placeholder name, overwrite with current defaults
+    (function migrateProfile() {
+      const raw = localStorage.getItem(DB.KEYS.profile);
+      if (!raw) return;
+      try {
+        const cur = JSON.parse(raw);
+        if (cur.name === 'ชื่อของคุณ') {
+          localStorage.removeItem(DB.KEYS.profile);
+        }
+      } catch {}
+    })();
+
+    mountLayout('about');
+    renderProfile();
+    window.addEventListener('firebase-pulled', renderProfile);
+  </script>
+</body>
+</html>

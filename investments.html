@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>การลงทุน · My Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="page-header">
+      <h1>การลงทุน</h1>
+      <p>พอร์ตการลงทุนและกำไร/ขาดทุน</p>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom: 20px;" id="invStats"></div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="btn-row">
+        <button class="btn" onclick="openInvModal()">➕ เพิ่มสินทรัพย์</button>
+        <button class="btn ghost" onclick="syncWatchlist()">🔄 ซิงค์ราคา Watchlist</button>
+      </div>
+      <div id="lastSyncBox" style="margin-top: 12px; padding: 10px 14px; background: var(--bg); border-radius: 8px; font-size: 0.88rem; color: var(--text-muted);">
+        🕐 ราคา Watchlist จะอัปเดตเมื่อพิมพ์คำว่า "อัพเดท" ในแชท
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>สินทรัพย์</th>
+              <th>ประเภท</th>
+              <th style="text-align: right;">จำนวน</th>
+              <th style="text-align: right;">ต้นทุน/หน่วย</th>
+              <th style="text-align: right;">ราคาปัจจุบัน</th>
+              <th style="text-align: right;">มูลค่า</th>
+              <th style="text-align: right;">กำไร/ขาดทุน</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+      <div id="invEmpty" style="display:none;" class="empty">
+        <div class="empty-icon">📈</div>
+        ยังไม่มีสินทรัพย์ — กด "เพิ่มสินทรัพย์"
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="invModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="invModalTitle">เพิ่มสินทรัพย์</h2>
+        <button class="close-btn" onclick="closeInvModal()">×</button>
+      </div>
+      <input type="hidden" id="iId">
+      <div class="form-row">
+        <div><label>ชื่อ/สัญลักษณ์ *</label><input id="iName" placeholder="เช่น PTT, BTC"></div>
+        <div>
+          <label>ประเภท *</label>
+          <select id="iType">
+            <option value="หุ้น">หุ้น</option>
+            <option value="กองทุนรวม">กองทุนรวม</option>
+            <option value="คริปโต">คริปโต</option>
+            <option value="ทอง">ทอง</option>
+            <option value="ตราสารหนี้">ตราสารหนี้</option>
+            <option value="อสังหา">อสังหาริมทรัพย์</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label>จำนวน *</label><input type="number" id="iQty" step="0.0001" min="0"></div>
+        <div><label>ต้นทุน/หน่วย *</label><input type="number" id="iBuyPrice" step="0.01" min="0"></div>
+        <div><label>ราคาปัจจุบัน *</label><input type="number" id="iCurPrice" step="0.01" min="0"></div>
+      </div>
+      <div class="form-row">
+        <div><label>วันที่ซื้อ</label><input type="date" id="iBuyDate"></div>
+        <div><label>บันทึก</label><input id="iNote"></div>
+      </div>
+      <div class="btn-row" style="margin-top: 20px;">
+        <button class="btn" onclick="saveInv()">💾 บันทึก</button>
+        <button class="btn ghost" onclick="closeInvModal()">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="assets/stocks.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script type="module" src="js/firebase-sync.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});</script>
+  <script src="js/investments.js"></script>
+  <script>window.addEventListener('firebase-pulled', renderInv);</script>
+</body>
+</html>

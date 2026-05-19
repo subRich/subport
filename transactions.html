@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>รายรับ-รายจ่าย · My Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="page-header">
+      <h1>รายรับ-รายจ่าย</h1>
+      <p>บันทึกและจัดการรายการเงินเข้า-ออก</p>
+    </div>
+
+    <!-- Summary -->
+    <div class="grid grid-3" style="margin-bottom: 20px;" id="summary"></div>
+
+    <!-- Filter + Actions -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="filter-bar">
+        <div>
+          <label>เดือน</label>
+          <input type="month" id="filterMonth">
+        </div>
+        <div>
+          <label>ประเภท</label>
+          <select id="filterType">
+            <option value="">ทั้งหมด</option>
+            <option value="income">รายรับ</option>
+            <option value="expense">รายจ่าย</option>
+          </select>
+        </div>
+        <div>
+          <label>หมวดหมู่</label>
+          <select id="filterCat"><option value="">ทั้งหมด</option></select>
+        </div>
+        <div style="flex: 1; min-width: 180px;">
+          <label>ค้นหา</label>
+          <input id="filterSearch" placeholder="ค้นหาในบันทึก...">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="openModal()">➕ เพิ่มรายการ</button>
+        <button class="btn ghost" onclick="document.getElementById('xlsxInput').click()">📥 นำเข้า Excel</button>
+        <button class="btn ghost" onclick="exportXlsx()">📤 ส่งออก Excel</button>
+        <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+      <div style="margin-top: 12px; padding: 10px 14px; background: var(--bg); border-radius: 8px; font-size: 0.88rem; color: var(--text-muted);">
+        🔄 รายการจาก <b>รายรับรายจ่าย.xlsx</b> จะ sync อัตโนมัติ — แก้ใน Excel แล้วพิมพ์ "<b>อัพเดทรายรับรายจ่าย</b>" ในแชท
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>วันที่</th>
+              <th>ประเภท</th>
+              <th>หมวดหมู่</th>
+              <th>บันทึก</th>
+              <th style="text-align: right;">จำนวนเงิน</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" style="display:none;" class="empty">
+        <div class="empty-icon">📒</div>
+        ยังไม่มีรายการ — กด "เพิ่มรายการ" หรือ "นำเข้า Excel"
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="txModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">เพิ่มรายการ</h2>
+        <button class="close-btn" onclick="closeModal()">×</button>
+      </div>
+      <input type="hidden" id="tId">
+      <div class="form-row">
+        <div><label>วันที่ *</label><input type="date" id="tDate" required></div>
+        <div>
+          <label>ประเภท *</label>
+          <select id="tType">
+            <option value="expense">รายจ่าย</option>
+            <option value="income">รายรับ</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label>หมวดหมู่ *</label>
+          <input id="tCategory" list="catList" placeholder="เช่น อาหาร, เงินเดือน">
+          <datalist id="catList"></datalist>
+        </div>
+        <div><label>จำนวนเงิน (บาท) *</label><input type="number" id="tAmount" step="0.01" min="0"></div>
+      </div>
+      <div><label>บันทึก/รายละเอียด</label><textarea id="tNote" rows="2"></textarea></div>
+      <div class="btn-row" style="margin-top: 20px;">
+        <button class="btn" onclick="saveTx()">💾 บันทึก</button>
+        <button class="btn ghost" onclick="closeModal()">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="assets/transactions.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script type="module" src="js/firebase-sync.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});</script>
+  <script src="js/transactions.js"></script>
+  <script>window.addEventListener('firebase-pulled', render);</script>
+</body>
+</html>
