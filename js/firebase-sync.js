@@ -123,7 +123,8 @@ const FBSync = {
     }
     if (user) {
       const initial = (user.displayName || user.email || '?').charAt(0).toUpperCase();
-      box.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem">${initial}</div><span style="color:var(--text-muted,#94a3b8)">${user.email || 'signed in'}</span><button onclick="FBSync.signOut()" style="background:transparent;border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem">ออก</button>`;
+      const btnStyle = 'background:transparent;border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem';
+      box.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem">${initial}</div><span style="color:var(--text-muted,#94a3b8);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.email || 'signed in'}</span><button onclick="FBSync.pushAll()" style="${btnStyle}" title="Push localStorage → Cloud">⬆️ Push</button><button onclick="FBSync.pullAll()" style="${btnStyle}" title="Pull Cloud → localStorage">⬇️ Pull</button><button onclick="FBSync.signOut()" style="${btnStyle}">ออก</button>`;
     } else {
       box.innerHTML = `<button onclick="FBSync.signIn()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:500">🔐 Sign in (Sync)</button>`;
     }
@@ -174,15 +175,20 @@ const FBSync = {
   },
 
   async push(collection, value) {
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      console.warn(`[Firebase] push ${collection} skipped — not enabled (uid=${this.uid})`);
+      return;
+    }
     try {
       await this._sdk.setDoc(this._docRef(collection), {
         value,
         updatedAt: new Date().toISOString(),
         device: navigator.userAgent.includes('Mobi') ? 'mobile' : 'desktop',
       });
+      const count = Array.isArray(value) ? value.length : 1;
+      console.log(`[Firebase] ✅ pushed ${collection} (${count} items)`);
     } catch (e) {
-      console.warn(`[Firebase] push ${collection} failed:`, e.message);
+      console.error(`[Firebase] ❌ push ${collection} failed:`, e.message, e.code);
     }
   },
 
