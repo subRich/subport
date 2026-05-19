@@ -267,9 +267,57 @@ function renderDailySnapshot() {
   `;
 }
 
+let _newsFilter = 'ALL';
+function renderNews() {
+  const data = window.NEWS_DATA;
+  const listEl = document.getElementById('newsList');
+  const filterEl = document.getElementById('newsFilter');
+  if (!listEl) return;
+  if (!data || !data.tickers) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-icon">📰</div>ยังไม่มีข่าว — สั่ง "อัพเดทข่าว" ในแชท</div>';
+    return;
+  }
+  const tickers = Object.keys(data.tickers);
+  const tickerColors = { RDW:'#6366f1', ENPH:'#10b981', CPER:'#f59e0b', SOUN:'#ec4899' };
+  filterEl.innerHTML = ['ALL', ...tickers].map(t => {
+    const active = t === _newsFilter;
+    const bg = active ? (tickerColors[t] || 'var(--primary)') : 'var(--bg)';
+    const fg = active ? 'white' : 'var(--text-muted)';
+    return `<button onclick="_newsFilter='${t}';renderNews()" style="background:${bg};color:${fg};border:1px solid var(--border);padding:5px 14px;border-radius:16px;cursor:pointer;font-size:0.85rem;font-family:inherit">${t === 'ALL' ? 'ทั้งหมด' : t}</button>`;
+  }).join('');
+
+  let items = [];
+  if (_newsFilter === 'ALL') {
+    tickers.forEach(t => (data.tickers[t] || []).forEach(n => items.push({ ...n, ticker: t })));
+  } else {
+    items = (data.tickers[_newsFilter] || []).map(n => ({ ...n, ticker: _newsFilter }));
+  }
+  if (items.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="empty-icon">📰</div>ไม่มีข่าวสำหรับ ' + _newsFilter + '</div>';
+    return;
+  }
+  listEl.innerHTML = items.map(n => {
+    const color = tickerColors[n.ticker] || 'var(--primary)';
+    return `
+      <a href="${n.href}" target="_blank" rel="noopener" style="display:block; padding: 12px 14px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom: 4px;">
+          <span style="background:${color}22; color:${color}; padding:2px 10px; border-radius:10px; font-size:0.72rem; font-weight:600;">${n.ticker}</span>
+          <span style="color: var(--text-muted); font-size: 0.8rem;">${n.source || ''}</span>
+        </div>
+        <div style="font-weight: 500; line-height: 1.4;">${n.title}</div>
+      </a>
+    `;
+  }).join('');
+
+  const ts = data.lastUpdated ? new Date(data.lastUpdated).toLocaleString('th-TH') : '-';
+  listEl.insertAdjacentHTML('afterend', '<!--newsts-->');
+  listEl.insertAdjacentHTML('beforeend', `<div style="padding: 10px 0; font-size: 0.78rem; color: var(--text-muted); text-align: center;">🕐 อัปเดต ${ts} · จาก ${data.source}</div>`);
+}
+
 function renderAll() {
   renderStats();
   renderDailySnapshot();
+  renderNews();
   renderCategoryChart();
   renderTrendChart();
   renderInvestChart();
