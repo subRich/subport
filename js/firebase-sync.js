@@ -29,11 +29,16 @@ const FBSync = {
     }
 
     // 1. Determine vault ID — priority: URL > localStorage > new
+    // Validates format strictly: 16-64 hex chars only
+    const sanitize = (id) => {
+      if (!id) return null;
+      const clean = String(id).replace(/[^a-zA-Z0-9_-]/g, '');
+      if (clean.length < 16 || clean.length > 64) return null;
+      return clean;
+    };
     const url = new URL(location.href);
-    let vaultId = url.searchParams.get('v');
-    if (!vaultId) {
-      vaultId = localStorage.getItem('pf_vault_id');
-    }
+    let vaultId = sanitize(url.searchParams.get('v'));
+    if (!vaultId) vaultId = sanitize(localStorage.getItem('pf_vault_id'));
     if (!vaultId) {
       vaultId = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '').slice(0, 32);
       console.log('[Vault] New vault created:', vaultId);
