@@ -137,15 +137,16 @@ const FBSync = {
   async pullAll() {
     if (!this.enabled) return;
     const collections = ['profile', 'transactions', 'investments', 'goals'];
+    let cloudHadAnything = false;
     for (const col of collections) {
       try {
         const snap = await this._sdk.getDoc(this._docRef(col));
         if (snap.exists()) {
+          cloudHadAnything = true;
           const cloud = snap.data();
           const key = DB.KEYS[col];
-          // Heuristic: cloud has data → sync to local
           if (col === 'profile') {
-            DB.saveProfile(cloud.value || cloud);
+            localStorage.setItem(DB.KEYS.profile, JSON.stringify(cloud.value || cloud));
           } else if (Array.isArray(cloud.value)) {
             localStorage.setItem(key, JSON.stringify(cloud.value));
           }
@@ -154,8 +155,22 @@ const FBSync = {
         console.warn(`[Firebase] pull ${col} failed:`, e.message);
       }
     }
-    // Trigger re-render
     window.dispatchEvent(new Event('firebase-pulled'));
+
+    // If cloud was empty, push current local state up (first-time sync)
+    if (!cloudHadAnything) {
+      console.log('[Firebase] Cloud empty — pushing local data up');
+      await this.pushAll();
+    }
+  },
+
+  async pushAll() {
+    if (!this.enabled) return;
+    await this.push('profile', DB.getProfile());
+    await this.push('transactions', DB.getTransactions());
+    await this.push('investments', DB.getInvestments());
+    await this.push('goals', DB.getGoals());
+    if (typeof toast === 'function') toast('☁️ ข้อมูลทั้งหมด sync ขึ้น cloud แล้ว');
   },
 
   async push(collection, value) {
