@@ -308,23 +308,14 @@ function renderNews() {
       </div>
       ${d.items.map(n => {
         const color = tickerColors[n.ticker] || 'var(--primary)';
-        const hasDetail = !!n.detail;
-        const detailHtml = hasDetail ? n.detail.replace(/\n/g, '<br>') : '<i style="color:var(--text-muted)">รายละเอียดยังไม่ได้แปล — สั่ง "อัพเดทข่าวเต็ม" ในแชทเพื่อให้ Claude แปล</i>';
         return `
-          <details style="padding: 10px 14px; border-bottom: 1px solid var(--border);">
-            <summary style="cursor: pointer; list-style: none; outline: none;">
-              <div style="display:flex; align-items:center; gap:10px; margin-bottom: 4px; flex-wrap:wrap;">
-                <span style="background:${color}22; color:${color}; padding:2px 10px; border-radius:10px; font-size:0.72rem; font-weight:600;">${n.ticker}</span>
-                <span style="color: var(--text-muted); font-size: 0.78rem;">${n.source || ''}</span>
-                <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: auto;">${hasDetail ? '📖 มีรายละเอียด' : '⏳ ยังไม่มีรายละเอียด'} ▾</span>
-              </div>
-              <div style="line-height: 1.5; font-weight: 500;">${n.summary}</div>
-            </summary>
-            <div style="margin-top: 12px; padding: 14px; background: var(--bg); border-radius: 8px; line-height: 1.7; font-size: 0.95rem;">
-              ${detailHtml}
-              ${n.href ? `<div style="margin-top: 12px; font-size: 0.78rem;"><a href="${n.href}" target="_blank" rel="noopener" style="color: var(--text-muted);">🔗 อ่านต้นฉบับ (อังกฤษ)</a></div>` : ''}
+          <a href="${n.href || '#'}" target="_blank" rel="noopener" style="display:block; padding: 10px 14px; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom: 4px; flex-wrap:wrap;">
+              <span style="background:${color}22; color:${color}; padding:2px 10px; border-radius:10px; font-size:0.72rem; font-weight:600;">${n.ticker}</span>
+              <span style="color: var(--text-muted); font-size: 0.78rem;">${n.source || ''}</span>
             </div>
-          </details>
+            <div style="line-height: 1.5; font-weight: 500;">${n.summary}</div>
+          </a>
         `;
       }).join('')}
     </div>
