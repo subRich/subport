@@ -1,19 +1,13 @@
 // ===== Firebase Configuration =====
-// แทนที่ค่าด้านล่างด้วย config จาก Firebase Console
-// (Project Settings → General → Your apps → Web app → Config)
-//
-// ถ้ายังไม่ได้ตั้งค่า — ตัวแปรจะเป็น null และระบบทำงานด้วย localStorage อย่างเดียว
+// Project: subrich-cb0f1
+// API key เป็น public ได้ — security เกิดจาก Firestore Rules + Auth (UID match)
 
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyDwjeIHM_uFAIE7hwBwDfUGED2PKbv5yAU",
+  authDomain: "subrich-cb0f1.firebaseapp.com",
+  projectId: "subrich-cb0f1",
+  storageBucket: "subrich-cb0f1.firebasestorage.app",
+  messagingSenderId: "315647214432",
+  appId: "1:315647214432:web:bd9d8840f9ae96162c1405",
+  measurementId: "G-0PZQLLXVPV"
 };
-
-// ตั้งเป็น null ถ้ายังไม่ได้กรอก (ป้องกัน Firebase init แล้ว fail)
-if (!window.FIREBASE_CONFIG.apiKey) {
-  window.FIREBASE_CONFIG = null;
-}
