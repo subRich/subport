@@ -8,6 +8,8 @@ assets/stocks.js
 assets/stocks.json
 assets/transactions.js
 assets/profile.jpg
+backup-import-me.json
+backup-*.json
 
 # ===== Local secrets =====
 firebase-config.local.js
