@@ -177,8 +177,99 @@ function renderRecent() {
   `).join('');
 }
 
+function renderDailySnapshot() {
+  const el = document.getElementById('dailySnapshot');
+  if (!el) return;
+  const data = window.SNAPSHOTS_DATA;
+  if (!data || !data.snapshots || data.snapshots.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📅</div>ยังไม่มี snapshot — รอ cron รันเช้า/เย็น</div>';
+    return;
+  }
+
+  const snaps = [...data.snapshots].sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  const latest = snaps[0];
+  const prev = snaps[1] || null;
+  const rate = latest.usdThb || 32.61;
+
+  const totalValueUsd = (latest.stocksValueUsd || 0) + (latest.optionsValueUsd || 0);
+  const totalCostUsd = (latest.stocksCostUsd || 0) + (latest.optionsCostUsd || 0);
+  const totalPlUsd = totalValueUsd - totalCostUsd;
+  const totalPlPct = totalCostUsd > 0 ? (totalPlUsd / totalCostUsd) * 100 : 0;
+
+  let deltaHtml = '';
+  if (prev) {
+    const prevValueUsd = (prev.stocksValueUsd || 0) + (prev.optionsValueUsd || 0);
+    const deltaUsd = totalValueUsd - prevValueUsd;
+    const deltaPct = prevValueUsd > 0 ? (deltaUsd / prevValueUsd) * 100 : 0;
+    const deltaColor = deltaUsd >= 0 ? 'var(--success)' : 'var(--danger)';
+    const arrow = deltaUsd >= 0 ? '▲' : '▼';
+    deltaHtml = `
+      <div style="margin-top: 8px; font-size: 0.92rem; color: ${deltaColor}">
+        ${arrow} ${deltaUsd >= 0 ? '+' : ''}${fmt.usd(deltaUsd)} (${deltaUsd >= 0 ? '+' : ''}${deltaPct.toFixed(2)}%) จาก ${prev.date} ${prev.time}
+      </div>`;
+  }
+
+  const stocksPL = (latest.stocksValueUsd || 0) - (latest.stocksCostUsd || 0);
+  const optionsPL = (latest.optionsValueUsd || 0) - (latest.optionsCostUsd || 0);
+
+  el.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div style="color: var(--text-muted); font-size: 0.88rem;">มูลค่าพอร์ตรวม · ${latest.date} ${latest.time} (${latest.slot})</div>
+        <div style="font-size: 2rem; font-weight: 700;">${fmt.thb(totalValueUsd * rate)}</div>
+        <div style="color: var(--text-muted); font-size: 0.92rem;">≈ ${fmt.usd(totalValueUsd)}</div>
+        ${deltaHtml}
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 0.85rem; color: var(--text-muted);">P/L รวมตั้งแต่ซื้อ</div>
+        <div style="font-size: 1.3rem; font-weight: 700; color: ${totalPlUsd >= 0 ? 'var(--success)' : 'var(--danger)'}">
+          ${totalPlUsd >= 0 ? '+' : ''}${fmt.thb(totalPlUsd * rate)}
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">${totalPlUsd >= 0 ? '+' : ''}${totalPlPct.toFixed(2)}% · ${totalPlUsd >= 0 ? '+' : ''}${fmt.usd(totalPlUsd)}</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 16px; gap: 12px;">
+      <div style="padding: 12px 14px; background: var(--bg); border-radius: 8px;">
+        <div style="font-size: 0.82rem; color: var(--text-muted);">📈 หุ้น</div>
+        <div style="font-weight: 600;">${fmt.thb((latest.stocksValueUsd || 0) * rate)}</div>
+        <div style="font-size: 0.85rem; color: ${stocksPL >= 0 ? 'var(--success)' : 'var(--danger)'}">${stocksPL >= 0 ? '+' : ''}${fmt.usd(stocksPL)}</div>
+      </div>
+      <div style="padding: 12px 14px; background: var(--bg); border-radius: 8px;">
+        <div style="font-size: 0.82rem; color: var(--text-muted);">🎲 ออปชัน</div>
+        <div style="font-weight: 600;">${fmt.thb((latest.optionsValueUsd || 0) * rate)}</div>
+        <div style="font-size: 0.85rem; color: ${optionsPL >= 0 ? 'var(--success)' : 'var(--danger)'}">${optionsPL >= 0 ? '+' : ''}${fmt.usd(optionsPL)}</div>
+      </div>
+    </div>
+
+    <details style="margin-top: 14px;">
+      <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.88rem;">📜 History (${snaps.length} snapshots)</summary>
+      <div class="table-wrap" style="margin-top: 10px;">
+        <table>
+          <thead><tr><th>วัน-เวลา</th><th>Slot</th><th style="text-align:right">มูลค่า (THB)</th><th style="text-align:right">P/L</th></tr></thead>
+          <tbody>
+            ${snaps.map(s => {
+              const v = ((s.stocksValueUsd || 0) + (s.optionsValueUsd || 0)) * (s.usdThb || 32.61);
+              const c = ((s.stocksCostUsd || 0) + (s.optionsCostUsd || 0)) * (s.usdThb || 32.61);
+              const pl = v - c;
+              const slotIcon = s.slot === 'morning' ? '🌅' : '🌆';
+              return `<tr>
+                <td>${s.date} ${s.time}</td>
+                <td>${slotIcon} ${s.slot}</td>
+                <td style="text-align:right">${fmt.thb(v)}</td>
+                <td style="text-align:right; color: ${pl >= 0 ? 'var(--success)' : 'var(--danger)'}">${pl >= 0 ? '+' : ''}${fmt.thb(pl)}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  `;
+}
+
 function renderAll() {
   renderStats();
+  renderDailySnapshot();
   renderCategoryChart();
   renderTrendChart();
   renderInvestChart();
