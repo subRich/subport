@@ -92,18 +92,38 @@ const FBSync = {
   },
 
   async signIn() {
-    if (!this.auth) return;
+    if (!this.auth) {
+      if (typeof toast === 'function') toast('Firebase ยังไม่พร้อม - รอสักครู่แล้วลองใหม่', 'error');
+      return;
+    }
     const provider = new this._sdk.GoogleAuthProvider();
-    const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+    provider.setCustomParameters({ prompt: 'select_account' });
+    if (typeof toast === 'function') toast('กำลังเปิดหน้าต่าง Google...');
+    // Try popup first (works on both desktop and modern mobile)
     try {
-      if (isMobile) {
-        await this._sdk.signInWithRedirect(this.auth, provider);
-      } else {
-        await this._sdk.signInWithPopup(this.auth, provider);
-      }
+      const result = await this._sdk.signInWithPopup(this.auth, provider);
+      console.log('[Firebase] Sign-in success (popup):', result.user.email);
+      if (typeof toast === 'function') toast('✅ Sign in สำเร็จ: ' + result.user.email);
     } catch (e) {
-      console.warn('[Firebase] Sign-in error:', e.message);
-      if (typeof toast === 'function') toast('Sign-in failed: ' + e.message, 'error');
+      console.warn('[Firebase] Popup failed:', e.code, e.message);
+      // Common popup errors → fall back to redirect
+      const redirectableErrors = [
+        'auth/popup-blocked',
+        'auth/popup-closed-by-user',
+        'auth/cancelled-popup-request',
+        'auth/operation-not-supported-in-this-environment',
+      ];
+      if (redirectableErrors.includes(e.code)) {
+        if (typeof toast === 'function') toast('Popup ถูกบล็อก กำลัง redirect...');
+        try {
+          await this._sdk.signInWithRedirect(this.auth, provider);
+        } catch (e2) {
+          console.error('[Firebase] Redirect also failed:', e2.code, e2.message);
+          if (typeof toast === 'function') toast('Sign-in ล้มเหลว: ' + e2.code, 'error');
+        }
+      } else {
+        if (typeof toast === 'function') toast('Sign-in ล้มเหลว: ' + (e.code || e.message), 'error');
+      }
     }
   },
 

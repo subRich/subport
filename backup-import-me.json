@@ -1,0 +1,98 @@
+{
+  "profile": {
+    "name": "ร.ต. สกุลทรัพย์ ทองเรือง",
+    "role": "นายทหารสัญญาบัตร · กองทัพบก",
+    "bio": "นักเรียนเตรียมทหารรุ่นที่ 62 · นักเรียนนายร้อย จปร. รุ่นที่ 73 มุ่งพัฒนาตนเองทั้งด้านการทหาร การเงินส่วนบุคคล และการลงทุนเพื่ออนาคต",
+    "email": "sakulsub3213@gmail.com",
+    "phone": "",
+    "location": "",
+    "avatar": "",
+    "skills": ["ผู้นำหน่วย", "การวางแผน", "การเงินส่วนบุคคล", "การลงทุน", "ระเบียบวินัย"],
+    "education": [
+      "โรงเรียนเตรียมทหาร รุ่นที่ 62 (ตท.62)",
+      "โรงเรียนนายร้อยพระจุลจอมเกล้า รุ่นที่ 73 (จปร.73)"
+    ],
+    "experience": ["นายทหารสัญญาบัตร — กองทัพบก"]
+  },
+  "transactions": [
+    {
+      "id": "xlsx_R4",
+      "date": "2026-05-19",
+      "type": "expense",
+      "category": "อาหาร",
+      "amount": 64,
+      "note": "อาหารเช้า"
+    }
+  ],
+  "investments": [
+    {
+      "id": "stock_RDW",
+      "name": "RDW",
+      "type": "หุ้น",
+      "currency": "USD",
+      "quantity": 104.9270208,
+      "buyPrice": 10.7029,
+      "currentPrice": 13.96,
+      "buyDate": "",
+      "note": "Redwire Corporation · ซิงค์จาก Excel"
+    },
+    {
+      "id": "stock_ENPH",
+      "name": "ENPH",
+      "type": "หุ้น",
+      "currency": "USD",
+      "quantity": 7.9716981,
+      "buyPrice": 48.08,
+      "currentPrice": 49.69,
+      "buyDate": "",
+      "note": "Enphase Energy · ซิงค์จาก Excel"
+    },
+    {
+      "id": "opt_RDW_C20_20270115",
+      "name": "RDW Call $20",
+      "type": "ออปชัน",
+      "currency": "USD",
+      "quantity": 200,
+      "buyPrice": 3.4633,
+      "currentPrice": 4.00,
+      "buyDate": "",
+      "note": "หมดอายุ 15 ม.ค. 70 · 2 สัญญา · IV 124.83% · Δ0.56 Θ-0.0121 · BE $23.4633"
+    },
+    {
+      "id": "opt_SOUN_C12_20270115",
+      "name": "SOUN Call $12",
+      "type": "ออปชัน",
+      "currency": "USD",
+      "quantity": 300,
+      "buyPrice": 2.05,
+      "currentPrice": 1.29,
+      "buyDate": "",
+      "note": "หมดอายุ 15 ม.ค. 70 · 3 สัญญา · IV 86.33% · Δ0.44 Θ-0.0049 · BE $14.05"
+    },
+    {
+      "id": "opt_CPER_C43_20270115",
+      "name": "CPER Call $43",
+      "type": "ออปชัน",
+      "currency": "USD",
+      "quantity": 100,
+      "buyPrice": 3.20,
+      "currentPrice": 2.78,
+      "buyDate": "",
+      "note": "หมดอายุ 15 ม.ค. 70 · 1 สัญญา · IV 39.37% · Δ0.42 Θ-0.0100 · BE $46.20"
+    },
+    {
+      "id": "opt_CPER_C45_20270115",
+      "name": "CPER Call $45",
+      "type": "ออปชัน",
+      "currency": "USD",
+      "quantity": 100,
+      "buyPrice": 4.20,
+      "currentPrice": 2.34,
+      "buyDate": "",
+      "note": "หมดอายุ 15 ม.ค. 70 · 1 สัญญา · IV 38.17% · Δ0.37 Θ-0.0095 · BE $49.20"
+    }
+  ],
+  "goals": [],
+  "exportedAt": "2026-05-19T10:30:00+07:00",
+  "note": "สร้างโดย Claude จากข้อมูลใน การลงทุน.xlsx + รายรับรายจ่าย.xlsx"
+}
