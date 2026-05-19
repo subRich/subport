@@ -1,164 +1,84 @@
-// ===== Firebase Sync Layer =====
-// Bi-directional sync between localStorage and Firestore.
-// When user adds/edits/deletes on either device, changes propagate via Firestore.
+// ===== Firebase Sync Layer — Vault Mode (no auth) =====
+// แต่ละ user มี vault ID ยาวๆ ในรูป URL — ?v=<random-32-chars>
+// ทุก device ที่ใช้ URL เดียวกัน → sync ข้อมูลกัน
+// ไม่ต้อง login — vault ID = key
 //
-// SETUP:
-// 1. Create Firebase project at https://console.firebase.google.com
-// 2. Enable Firestore Database (Production mode + add rules below)
-// 3. Enable Authentication → Anonymous sign-in
-// 4. Add Web app → copy config → paste into firebase-config.js
-// 5. Firestore rules:
-//    rules_version = '2';
-//    service cloud.firestore {
-//      match /databases/{database}/documents {
-//        match /users/{userId}/{document=**} {
-//          allow read, write: if request.auth != null && request.auth.uid == userId;
-//        }
-//      }
-//    }
+// SETUP Firestore Rules:
+//   rules_version = '2';
+//   service cloud.firestore {
+//     match /databases/{database}/documents {
+//       match /vaults/{vaultId}/{document=**} {
+//         allow read, write: if vaultId.size() >= 24;
+//       }
+//     }
+//   }
 
 const FBSync = {
   app: null,
   db: null,
-  auth: null,
-  uid: null,
-  initialized: false,
+  vaultId: null,
   enabled: false,
-  ready: new Promise(() => {}),
-  _readyResolve: null,
   listeners: [],
+  _suppressPush: false,
+  _suppressUntil: 0,
 
   async init() {
-    this.ready = new Promise(res => { this._readyResolve = res; });
-
-    if (typeof window.FIREBASE_CONFIG !== 'object' || !window.FIREBASE_CONFIG.apiKey) {
-      console.warn('[Firebase] No config found — running in localStorage-only mode.');
-      this._readyResolve(false);
+    if (!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.apiKey) {
+      console.warn('[Vault] No Firebase config — localStorage-only mode');
       return false;
     }
 
+    // 1. Determine vault ID — priority: URL > localStorage > new
+    const url = new URL(location.href);
+    let vaultId = url.searchParams.get('v');
+    if (!vaultId) {
+      vaultId = localStorage.getItem('pf_vault_id');
+    }
+    if (!vaultId) {
+      vaultId = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '').slice(0, 32);
+      console.log('[Vault] New vault created:', vaultId);
+    }
+    localStorage.setItem('pf_vault_id', vaultId);
+    this.vaultId = vaultId;
+
+    // Reflect in URL so it's shareable & bookmarkable
+    if (url.searchParams.get('v') !== vaultId) {
+      url.searchParams.set('v', vaultId);
+      history.replaceState({}, '', url);
+    }
+
+    // 2. Init Firebase
     try {
       const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js');
       const { getFirestore, doc, setDoc, getDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js');
-      const { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, browserLocalPersistence, setPersistence } = await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js');
-
       this.app = initializeApp(window.FIREBASE_CONFIG);
       this.db = getFirestore(this.app);
-      this.auth = getAuth(this.app);
-      await setPersistence(this.auth, browserLocalPersistence);
-      this._sdk = { doc, setDoc, getDoc, onSnapshot, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged };
+      this._sdk = { doc, setDoc, getDoc, onSnapshot };
+      this.enabled = true;
+      console.log('[Vault] Ready · vault:', vaultId.slice(0, 8) + '...');
 
-      // Handle redirect result on mobile
-      try { await getRedirectResult(this.auth); } catch (e) { console.warn('[Firebase] Redirect result:', e.message); }
-
-      // Wait for auth state (don't auto-signin — wait for user button click)
-      const user = await new Promise((resolve) => {
-        const unsub = onAuthStateChanged(this.auth, (u) => { unsub(); resolve(u); });
-      });
-
-      this._renderAuthUI(user);
-
-      if (user) {
-        this.uid = user.uid;
-        this.initialized = true;
-        this.enabled = true;
-        console.log('[Firebase] Signed in:', user.email || user.uid);
-        this._readyResolve(true);
-        await this.pullAll();
-        this._setupListeners();
-        // Re-render UI on auth changes
-        onAuthStateChanged(this.auth, (u) => this._renderAuthUI(u));
-      } else {
-        console.log('[Firebase] Not signed in — click Sign in button');
-        this._readyResolve(false);
-        // Listen for sign-in
-        onAuthStateChanged(this.auth, (u) => {
-          this._renderAuthUI(u);
-          if (u && !this.uid) {
-            this.uid = u.uid;
-            this.initialized = true;
-            this.enabled = true;
-            this.pullAll();
-            this._setupListeners();
-          }
-        });
-      }
+      await this.pullAll();
+      this._setupListeners();
+      this._renderVaultUI();
       return true;
     } catch (e) {
-      console.warn('[Firebase] Init failed:', e.message);
-      this._readyResolve(false);
+      console.error('[Vault] Init failed:', e.message);
+      this._renderVaultUI(e.message);
       return false;
-    }
-  },
-
-  async signIn() {
-    if (!this.auth) {
-      if (typeof toast === 'function') toast('Firebase ยังไม่พร้อม - รอสักครู่แล้วลองใหม่', 'error');
-      return;
-    }
-    const provider = new this._sdk.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    if (typeof toast === 'function') toast('กำลังเปิดหน้าต่าง Google...');
-    // Try popup first (works on both desktop and modern mobile)
-    try {
-      const result = await this._sdk.signInWithPopup(this.auth, provider);
-      console.log('[Firebase] Sign-in success (popup):', result.user.email);
-      if (typeof toast === 'function') toast('✅ Sign in สำเร็จ: ' + result.user.email);
-    } catch (e) {
-      console.warn('[Firebase] Popup failed:', e.code, e.message);
-      // Common popup errors → fall back to redirect
-      const redirectableErrors = [
-        'auth/popup-blocked',
-        'auth/popup-closed-by-user',
-        'auth/cancelled-popup-request',
-        'auth/operation-not-supported-in-this-environment',
-      ];
-      if (redirectableErrors.includes(e.code)) {
-        if (typeof toast === 'function') toast('Popup ถูกบล็อก กำลัง redirect...');
-        try {
-          await this._sdk.signInWithRedirect(this.auth, provider);
-        } catch (e2) {
-          console.error('[Firebase] Redirect also failed:', e2.code, e2.message);
-          if (typeof toast === 'function') toast('Sign-in ล้มเหลว: ' + e2.code, 'error');
-        }
-      } else {
-        if (typeof toast === 'function') toast('Sign-in ล้มเหลว: ' + (e.code || e.message), 'error');
-      }
-    }
-  },
-
-  async signOut() {
-    if (!this.auth) return;
-    await this._sdk.signOut(this.auth);
-    location.reload();
-  },
-
-  _renderAuthUI(user) {
-    let box = document.getElementById('fbAuthBox');
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'fbAuthBox';
-      box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:1000;background:var(--bg-card,#1e293b);border:1px solid var(--border,#334155);border-radius:8px;padding:6px 10px;font-size:0.82rem;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,0.25)';
-      document.body.appendChild(box);
-    }
-    if (user) {
-      const initial = (user.displayName || user.email || '?').charAt(0).toUpperCase();
-      const btnStyle = 'background:transparent;border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);padding:3px 8px;border-radius:6px;cursor:pointer;font-size:0.75rem';
-      box.innerHTML = `<div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);color:white;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.75rem">${initial}</div><span style="color:var(--text-muted,#94a3b8);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${user.email || 'signed in'}</span><button onclick="FBSync.pushAll()" style="${btnStyle}" title="Push localStorage → Cloud">⬆️ Push</button><button onclick="FBSync.pullAll()" style="${btnStyle}" title="Pull Cloud → localStorage">⬇️ Pull</button><button onclick="FBSync.signOut()" style="${btnStyle}">ออก</button>`;
-    } else {
-      box.innerHTML = `<button onclick="FBSync.signIn()" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.82rem;font-weight:500">🔐 Sign in (Sync)</button>`;
     }
   },
 
   _docRef(collection) {
-    if (!this.uid) return null;
-    return this._sdk.doc(this.db, 'users', this.uid, 'data', collection);
+    if (!this.vaultId) return null;
+    return this._sdk.doc(this.db, 'vaults', this.vaultId, 'data', collection);
   },
 
   async pullAll() {
     if (!this.enabled) return;
     const collections = ['profile', 'transactions', 'investments', 'goals'];
     let cloudHadAnything = false;
+    this._suppressPush = true;  // don't bounce cloud→local→cloud
+    this._suppressUntil = Date.now() + 1500;
     for (const col of collections) {
       try {
         const snap = await this._sdk.getDoc(this._docRef(col));
@@ -166,21 +86,21 @@ const FBSync = {
           cloudHadAnything = true;
           const cloud = snap.data();
           const key = DB.KEYS[col];
-          if (col === 'profile') {
-            localStorage.setItem(DB.KEYS.profile, JSON.stringify(cloud.value || cloud));
+          if (col === 'profile' && (cloud.value || cloud.name)) {
+            localStorage.setItem(key, JSON.stringify(cloud.value || cloud));
           } else if (Array.isArray(cloud.value)) {
             localStorage.setItem(key, JSON.stringify(cloud.value));
           }
         }
       } catch (e) {
-        console.warn(`[Firebase] pull ${col} failed:`, e.message);
+        console.warn(`[Vault] pull ${col} failed:`, e.message);
       }
     }
+    setTimeout(() => { this._suppressPush = false; }, 1500);
     window.dispatchEvent(new Event('firebase-pulled'));
 
-    // If cloud was empty, push current local state up (first-time sync)
     if (!cloudHadAnything) {
-      console.log('[Firebase] Cloud empty — pushing local data up');
+      console.log('[Vault] Cloud empty — pushing local');
       await this.pushAll();
     }
   },
@@ -191,14 +111,11 @@ const FBSync = {
     await this.push('transactions', DB.getTransactions());
     await this.push('investments', DB.getInvestments());
     await this.push('goals', DB.getGoals());
-    if (typeof toast === 'function') toast('☁️ ข้อมูลทั้งหมด sync ขึ้น cloud แล้ว');
+    if (typeof toast === 'function') toast('☁️ Sync ขึ้น cloud แล้ว');
   },
 
   async push(collection, value) {
-    if (!this.enabled) {
-      console.warn(`[Firebase] push ${collection} skipped — not enabled (uid=${this.uid})`);
-      return;
-    }
+    if (!this.enabled || this._suppressPush) return;
     try {
       await this._sdk.setDoc(this._docRef(collection), {
         value,
@@ -206,9 +123,9 @@ const FBSync = {
         device: navigator.userAgent.includes('Mobi') ? 'mobile' : 'desktop',
       });
       const count = Array.isArray(value) ? value.length : 1;
-      console.log(`[Firebase] ✅ pushed ${collection} (${count} items)`);
+      console.log(`[Vault] ✅ pushed ${collection} (${count})`);
     } catch (e) {
-      console.error(`[Firebase] ❌ push ${collection} failed:`, e.message, e.code);
+      console.error(`[Vault] ❌ push ${collection}:`, e.code, e.message);
     }
   },
 
@@ -217,22 +134,60 @@ const FBSync = {
     for (const col of collections) {
       const unsub = this._sdk.onSnapshot(this._docRef(col), (snap) => {
         if (!snap.exists()) return;
-        if (snap.metadata.hasPendingWrites) return; // skip self-writes
+        if (snap.metadata.hasPendingWrites) return;
         const cloud = snap.data();
         const key = DB.KEYS[col];
-        if (col === 'profile') {
+        this._suppressPush = true;
+        this._suppressUntil = Date.now() + 1500;
+        if (col === 'profile' && (cloud.value || cloud.name)) {
           localStorage.setItem(key, JSON.stringify(cloud.value || cloud));
         } else if (Array.isArray(cloud.value)) {
           localStorage.setItem(key, JSON.stringify(cloud.value));
         }
+        setTimeout(() => { this._suppressPush = false; }, 1500);
+        console.log(`[Vault] ⬇️ pulled ${col} from another device`);
         window.dispatchEvent(new Event('firebase-pulled'));
       });
       this.listeners.push(unsub);
     }
   },
+
+  async copyShareUrl() {
+    const url = new URL(location.origin + location.pathname);
+    url.searchParams.set('v', this.vaultId);
+    const u = url.toString();
+    try {
+      await navigator.clipboard.writeText(u);
+      if (typeof toast === 'function') toast('📋 Copy URL แล้ว — เปิดบนมือถือ');
+    } catch {
+      prompt('Copy URL นี้:', u);
+    }
+  },
+
+  _renderVaultUI(errMsg) {
+    let box = document.getElementById('fbAuthBox');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'fbAuthBox';
+      box.style.cssText = 'position:fixed;top:12px;right:12px;z-index:1000;background:var(--bg-card,#1e293b);border:1px solid var(--border,#334155);border-radius:8px;padding:8px 12px;font-size:0.82rem;display:flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,0.25);max-width:calc(100vw - 24px)';
+      document.body.appendChild(box);
+    }
+    if (errMsg) {
+      box.innerHTML = `<span style="color:#ef4444">⚠️ Cloud sync ปิด: ${errMsg}</span>`;
+      return;
+    }
+    const shortId = this.vaultId.slice(0, 6).toUpperCase();
+    const btnStyle = 'background:transparent;border:1px solid var(--border,#334155);color:var(--text-muted,#94a3b8);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:0.78rem;font-family:inherit';
+    box.innerHTML = `
+      <span style="color:var(--text-muted,#94a3b8)" title="Vault ID: ${this.vaultId}">📦 Vault <b style="color:var(--text,#f1f5f9)">${shortId}</b></span>
+      <button onclick="FBSync.copyShareUrl()" style="${btnStyle}" title="Copy URL ไปแชร์มือถือ">📋 แชร์</button>
+      <button onclick="FBSync.pushAll()" style="${btnStyle}" title="Push localStorage → Cloud">⬆️</button>
+      <button onclick="FBSync.pullAll()" style="${btnStyle}" title="Pull Cloud → localStorage">⬇️</button>
+    `;
+  },
 };
 
-// Hook into DB writes — push to Firestore after every save
+// Wrap DB.save* to auto-push
 (function wrapDB() {
   if (typeof DB === 'undefined') return;
   const wrap = (key, methodName) => {
@@ -248,8 +203,5 @@ const FBSync = {
   wrap('goals', 'saveGoals');
 })();
 
-// Expose to global scope (script is type=module, so vars don't auto-attach to window)
 window.FBSync = FBSync;
-
-// Auto-init
 FBSync.init();
