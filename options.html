@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>ออปชัน · My Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="page-header">
+      <h1>ออปชัน</h1>
+      <p>US stock options พร้อม Greeks และ Breakeven</p>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom: 20px;" id="optStats"></div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div id="optLastSync" style="padding: 10px 14px; background: var(--bg); border-radius: 8px; font-size: 0.88rem; color: var(--text-muted);">
+        🕐 ราคา option chain — สั่ง "อัพเดทออปชัน" ในแชทเพื่อ refresh
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Underlying</th>
+              <th>Strike</th>
+              <th>หมดอายุ</th>
+              <th style="text-align: right;">สัญญา</th>
+              <th style="text-align: right;">ต้นทุน/Opt</th>
+              <th style="text-align: right;">ปัจจุบัน</th>
+              <th style="text-align: right;">มูลค่า</th>
+              <th style="text-align: right;">P/L</th>
+              <th style="text-align: right;">Greeks</th>
+            </tr>
+          </thead>
+          <tbody id="optBody"></tbody>
+        </table>
+      </div>
+      <div id="optEmpty" style="display:none;" class="empty">
+        <div class="empty-icon">🎲</div>
+        ยังไม่มีออปชัน — แก้ใน Options sheet ใน การลงทุน.xlsx แล้วบอก "อัพเดทข้อมูลการลงทุน"
+      </div>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="assets/stocks.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script type="module" src="js/firebase-sync.js"></script>
+  <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js').catch(()=>{});</script>
+  <script src="js/options.js"></script>
+  <script>window.addEventListener('firebase-pulled', renderOpt);</script>
+</body>
+</html>

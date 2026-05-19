@@ -1,6 +1,7 @@
 // ===== Investments =====
 function renderInv() {
-  const list = DB.getInvestments();
+  // Exclude options — they live on options.html
+  const list = DB.getInvestments().filter(x => x.type !== 'ออปชัน');
   const tbody = document.getElementById('invBody');
   const empty = document.getElementById('invEmpty');
   const rate = getUsdThb();

@@ -186,7 +186,8 @@ function renderSidebar(active) {
     { id: 'about', label: '👤 เกี่ยวกับฉัน', href: 'index.html' },
     { id: 'dashboard', label: '📊 แดชบอร์ด', href: 'dashboard.html' },
     { id: 'transactions', label: '💰 รายรับ-รายจ่าย', href: 'transactions.html' },
-    { id: 'investments', label: '📈 การลงทุน', href: 'investments.html' },
+    { id: 'investments', label: '📈 หุ้น', href: 'investments.html' },
+    { id: 'options', label: '🎲 ออปชัน', href: 'options.html' },
     { id: 'goals', label: '🎯 เป้าหมาย', href: 'goals.html' },
   ];
   return `
